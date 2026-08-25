@@ -1,0 +1,237 @@
+import { BuildingConfig } from '@/types/building';
+import { validateBuildingConfig } from '@/lib/buildingSchema';
+
+const rawBuildingConfig: BuildingConfig = {
+  id: '5days-one',
+  name: '5days One Digital Twin',
+  footprint: {
+    width: 22,
+    depth: 14,
+  },
+  floorHeight: 3.4,
+  wallThickness: 0.12,
+  floors: [
+    {
+      id: 'floor-1',
+      index: 0,
+      name: 'Ground Floor (Lobby & Services)',
+      elevation: 0,
+      rooms: [
+        {
+          id: 'room-lobby',
+          name: 'Main Lobby & Welcome Lounge',
+          type: 'lobby',
+          floorId: 'floor-1',
+          position: [-5.5, 0, -2.5],
+          width: 9,
+          depth: 7,
+          height: 3.0,
+          doors: [
+            { id: 'door-lobby-main', wall: 'south', offset: 3.5, width: 2.0, height: 2.4 },
+          ],
+          windows: [
+            { id: 'win-lobby-front', wall: 'north', offset: 1.5, width: 3.0, height: 2.0, elevation: 0.8 },
+            { id: 'win-lobby-side', wall: 'west', offset: 1.5, width: 3.0, height: 2.0, elevation: 0.8 },
+          ],
+          deviceIds: ['LIGHT_LOBBY', 'AC_LOBBY', 'SENSOR_LOBBY', 'DOOR_LOBBY'],
+        },
+        {
+          id: 'room-101',
+          name: 'Operations & Facility Room 101',
+          type: 'office',
+          floorId: 'floor-1',
+          position: [5.5, 0, -2.5],
+          width: 9,
+          depth: 7,
+          height: 3.0,
+          doors: [
+            { id: 'door-101', wall: 'south', offset: 3.5, width: 1.2, height: 2.2 },
+          ],
+          windows: [
+            { id: 'win-101-front', wall: 'north', offset: 1.5, width: 2.5, height: 1.8, elevation: 0.9 },
+            { id: 'win-101-east', wall: 'east', offset: 1.5, width: 2.5, height: 1.8, elevation: 0.9 },
+          ],
+          deviceIds: ['AC_101', 'LIGHT_101', 'DOOR_101', 'SENSOR_101'],
+        },
+        {
+          id: 'room-102',
+          name: 'Central MEP & Utility 102',
+          type: 'utility',
+          floorId: 'floor-1',
+          position: [5.5, 0, 3.5],
+          width: 9,
+          depth: 4.5,
+          height: 3.0,
+          doors: [
+            { id: 'door-102', wall: 'north', offset: 2.0, width: 1.1, height: 2.2 },
+          ],
+          windows: [],
+          deviceIds: ['SENSOR_102', 'LIGHT_102'],
+        },
+        {
+          id: 'room-corr-1',
+          name: 'Ground Corridor & Staging',
+          type: 'corridor',
+          floorId: 'floor-1',
+          position: [-5.5, 0, 3.5],
+          width: 9,
+          depth: 4.5,
+          height: 3.0,
+          doors: [],
+          windows: [],
+          deviceIds: ['LIGHT_CORR_1', 'CCTV_CORR_1'],
+        },
+      ],
+      cores: [
+        {
+          id: 'core-elevator-1',
+          type: 'elevator',
+          position: [0, 0, 0],
+          width: 3.2,
+          depth: 3.2,
+          height: 3.0,
+        },
+      ],
+    },
+    {
+      id: 'floor-2',
+      index: 1,
+      name: 'Floor 2 (Executive Workspace)',
+      elevation: 3.4,
+      rooms: [
+        {
+          id: 'room-201',
+          name: 'Executive Workspace 201',
+          type: 'office',
+          floorId: 'floor-2',
+          position: [-5.5, 0, -2.5],
+          width: 9,
+          depth: 7,
+          height: 3.0,
+          doors: [
+            { id: 'door-201', wall: 'south', offset: 3.5, width: 1.2, height: 2.2 },
+          ],
+          windows: [
+            { id: 'win-201-north', wall: 'north', offset: 1.5, width: 2.8, height: 1.8, elevation: 0.9 },
+            { id: 'win-201-west', wall: 'west', offset: 1.5, width: 2.8, height: 1.8, elevation: 0.9 },
+          ],
+          deviceIds: ['AC_201', 'LIGHT_201', 'DOOR_201', 'SENSOR_201'],
+        },
+        {
+          id: 'room-202',
+          name: 'Creative Studio & Lab 202',
+          type: 'meeting',
+          floorId: 'floor-2',
+          position: [5.5, 0, -2.5],
+          width: 9,
+          depth: 7,
+          height: 3.0,
+          doors: [
+            { id: 'door-202', wall: 'south', offset: 3.5, width: 1.2, height: 2.2 },
+          ],
+          windows: [
+            { id: 'win-202-north', wall: 'north', offset: 1.5, width: 2.8, height: 1.8, elevation: 0.9 },
+            { id: 'win-202-east', wall: 'east', offset: 1.5, width: 2.8, height: 1.8, elevation: 0.9 },
+          ],
+          deviceIds: ['AC_202', 'LIGHT_202', 'DOOR_202', 'SENSOR_202'],
+        },
+        {
+          id: 'room-corr-2',
+          name: 'Central Skywalk & Lounge 2',
+          type: 'corridor',
+          floorId: 'floor-2',
+          position: [0, 0, 3.5],
+          width: 20,
+          depth: 4.5,
+          height: 3.0,
+          doors: [],
+          windows: [
+            { id: 'win-corr-2-south', wall: 'south', offset: 2.0, width: 4.0, height: 1.8, elevation: 0.9 },
+          ],
+          deviceIds: ['LIGHT_CORR_2', 'CCTV_CORR_2'],
+        },
+      ],
+      cores: [
+        {
+          id: 'core-elevator-2',
+          type: 'elevator',
+          position: [0, 0, 0],
+          width: 3.2,
+          depth: 3.2,
+          height: 3.0,
+        },
+      ],
+    },
+    {
+      id: 'floor-3',
+      index: 2,
+      name: 'Floor 3 (Summit Boardroom & Sky Lounge)',
+      elevation: 6.8,
+      rooms: [
+        {
+          id: 'room-301',
+          name: 'Summit Boardroom 301',
+          type: 'meeting',
+          floorId: 'floor-3',
+          position: [-4.5, 0, -2.0],
+          width: 11,
+          depth: 8,
+          height: 3.0,
+          doors: [
+            { id: 'door-301', wall: 'south', offset: 4.5, width: 1.4, height: 2.3 },
+          ],
+          windows: [
+            { id: 'win-301-north', wall: 'north', offset: 1.5, width: 3.5, height: 2.0, elevation: 0.8 },
+            { id: 'win-301-west', wall: 'west', offset: 1.5, width: 3.5, height: 2.0, elevation: 0.8 },
+          ],
+          deviceIds: ['AC_301', 'LIGHT_301', 'DOOR_301', 'SENSOR_301'],
+        },
+        {
+          id: 'room-302',
+          name: 'Executive Terrace Suite 302',
+          type: 'office',
+          floorId: 'floor-3',
+          position: [6.0, 0, -2.0],
+          width: 8,
+          depth: 8,
+          height: 3.0,
+          doors: [
+            { id: 'door-302', wall: 'south', offset: 3.0, width: 1.2, height: 2.2 },
+          ],
+          windows: [
+            { id: 'win-302-north', wall: 'north', offset: 1.0, width: 2.5, height: 2.0, elevation: 0.8 },
+            { id: 'win-302-east', wall: 'east', offset: 1.0, width: 2.5, height: 2.0, elevation: 0.8 },
+          ],
+          deviceIds: ['AC_302', 'LIGHT_302', 'DOOR_302'],
+        },
+        {
+          id: 'room-corr-3',
+          name: 'Sky Garden Promenade 3',
+          type: 'corridor',
+          floorId: 'floor-3',
+          position: [0, 0, 4.0],
+          width: 20,
+          depth: 3.5,
+          height: 3.0,
+          doors: [],
+          windows: [
+            { id: 'win-corr-3-south', wall: 'south', offset: 3.0, width: 5.0, height: 2.0, elevation: 0.7 },
+          ],
+          deviceIds: ['LIGHT_CORR_3', 'CCTV_CORR_3'],
+        },
+      ],
+      cores: [
+        {
+          id: 'core-elevator-3',
+          type: 'elevator',
+          position: [0, 0, 0],
+          width: 3.2,
+          depth: 3.2,
+          height: 3.0,
+        },
+      ],
+    },
+  ],
+};
+
+export const demoBuildingConfig: BuildingConfig = validateBuildingConfig(rawBuildingConfig);
