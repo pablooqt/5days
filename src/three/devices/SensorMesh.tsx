@@ -4,6 +4,7 @@ import React from 'react';
 import { SensorState } from '@/types/devices';
 import { DeviceStatus } from '@/types/domain';
 import { Html } from '@react-three/drei';
+import { useCameraStore } from '@/stores/useCameraStore';
 
 interface SensorMeshProps {
   state: SensorState;
@@ -12,6 +13,7 @@ interface SensorMeshProps {
 
 export const SensorMesh: React.FC<SensorMeshProps> = ({ state, status }) => {
   const isOnline = status !== 'offline';
+  const isZoomedIn = useCameraStore((s) => s.isZoomedIn);
   const statusColor =
     status === 'warning' ? '#f59e0b'
     : status === 'offline' ? '#6b7280'
@@ -40,6 +42,9 @@ export const SensorMesh: React.FC<SensorMeshProps> = ({ state, status }) => {
           center
           distanceFactor={18}
           zIndexRange={[5, 0]}
+          className={`transition-opacity duration-300 select-none ${
+            isZoomedIn ? 'opacity-0 pointer-events-none' : 'pointer-events-auto'
+          }`}
         >
           <div className="bg-slate-900/90 text-white text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md whitespace-nowrap shadow-sm border border-slate-700/50">
             {state.value.toFixed(1)}{state.unit}

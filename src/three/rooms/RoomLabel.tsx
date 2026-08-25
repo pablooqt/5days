@@ -5,6 +5,7 @@ import { Html } from '@react-three/drei';
 import { RoomConfig } from '@/types/building';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useCameraStore } from '@/stores/useCameraStore';
+import { useDeviceStore } from '@/stores/useDeviceStore';
 import {
   Briefcase,
   Users,
@@ -44,24 +45,33 @@ export const RoomLabel: React.FC<RoomLabelProps> = ({
 }) => {
   const selectRoom = useSelectionStore((s) => s.selectRoom);
   const issueCameraCommand = useCameraStore((s) => s.issueCommand);
+  const selectDevice = useDeviceStore((s) => s.selectDevice);
+  const selectedDeviceId = useDeviceStore((s) => s.selectedDeviceId);
+  const isZoomedIn = useCameraStore((s) => s.isZoomedIn);
+  const isDeviceActive = Boolean(selectedDeviceId);
+  const shouldHide = isZoomedIn || isDeviceActive;
 
   if (!isVisible) return null;
 
   return (
     <Html
-      position={[0, 0.16, 0]}
+      position={[0, 0.45, 0]}
       center
-      distanceFactor={32}
+      distanceFactor={18}
       zIndexRange={[10, 0]}
-      className="pointer-events-auto select-none"
+      className={`transition-opacity duration-300 select-none ${
+        shouldHide ? 'opacity-0 pointer-events-none' : 'pointer-events-auto'
+      }`}
     >
       <div
         onClick={(e) => {
           e.stopPropagation();
+          selectDevice(null);
           selectRoom(isSelected ? null : room.id);
         }}
         onDoubleClick={(e) => {
           e.stopPropagation();
+          selectDevice(null);
           selectRoom(room.id);
           issueCameraCommand('focusRoom', room.id);
         }}

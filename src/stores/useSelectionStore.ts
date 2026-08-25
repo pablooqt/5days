@@ -16,7 +16,7 @@ interface SelectionState {
 }
 
 export const useSelectionStore = create<SelectionState>((set) => ({
-  selectedBuildingId: '5days-one',
+  selectedBuildingId: 'omnitwin-one',
   selectedFloorId: 'floor-1',
   selectedRoomId: null,
   selectedDeviceId: null,

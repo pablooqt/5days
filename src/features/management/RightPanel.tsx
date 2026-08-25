@@ -106,7 +106,10 @@ export const RightPanel: React.FC = () => {
               return (
                 <button
                   key={id}
-                  onClick={() => selectDevice(id)}
+                  onClick={() => {
+                    selectDevice(id);
+                    issueCameraCommand('focusDevice', id);
+                  }}
                   className="flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-1 rounded-lg border bg-slate-50 border-slate-200 text-slate-700 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-all cursor-pointer"
                 >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
@@ -166,7 +169,13 @@ export const RightPanel: React.FC = () => {
           {floorRooms.map((r) => (
             <button
               key={r.id}
-               onClick={() => { selectFloor(selectedFloor.id); setFloorMode('isolate'); selectRoom(r.id); issueCameraCommand('focusRoom', r.id); }}
+              onClick={() => {
+                selectFloor(selectedFloor.id);
+                setFloorMode('isolate');
+                selectDevice(null);
+                selectRoom(r.id);
+                issueCameraCommand('focusRoom', r.id);
+              }}
               className="w-full text-left px-3 py-2.5 rounded-xl text-xs hover:bg-slate-50 text-slate-700 transition-all cursor-pointer border border-transparent hover:border-slate-200"
             >
               <div className="font-semibold">{r.name}</div>
@@ -212,7 +221,13 @@ export const RightPanel: React.FC = () => {
             {allDevices.filter((d) => d.status === 'warning').map((d) => (
               <button
                 key={d.id}
-                onClick={() => selectDevice(d.id)}
+                onClick={() => {
+                  selectFloor(d.floorId);
+                  selectRoom(d.roomId);
+                  setFloorMode('isolate');
+                  selectDevice(d.id);
+                  issueCameraCommand('focusDevice', d.id);
+                }}
                 className="w-full text-left flex items-center gap-2 py-1 cursor-pointer hover:opacity-80"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />

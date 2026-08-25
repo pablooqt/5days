@@ -44,8 +44,9 @@ function DeepLinkHandler() {
       const device = useDeviceStore.getState().definitions[deviceId];
       if (device) {
         selectFloor(device.floorId);
+        selectRoom(device.roomId);
         setFloorMode('isolate');
-        issueCameraCommand('focusFloor', device.floorId);
+        issueCameraCommand('focusDevice', deviceId);
       }
     }
     if (roomId) {
@@ -69,6 +70,8 @@ function DeepLinkHandler() {
 function FloorSelectorHUD() {
   const selectedFloorId = useSelectionStore((s) => s.selectedFloorId);
   const selectFloor  = useSelectionStore((s) => s.selectFloor);
+  const selectRoom   = useSelectionStore((s) => s.selectRoom);
+  const selectDevice = useDeviceStore((s) => s.selectDevice);
   const floorMode    = useVisibilityStore((s) => s.floorMode);
   const setFloorMode = useVisibilityStore((s) => s.setFloorMode);
   const issueCameraCommand = useCameraStore((s) => s.issueCommand);
@@ -79,7 +82,13 @@ function FloorSelectorHUD() {
       <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 shadow-lg flex items-center gap-1">
         <button
           aria-label="Show all floors"
-          onClick={() => { selectFloor(null); setFloorMode('full'); issueCameraCommand('overview'); }}
+          onClick={() => {
+            selectDevice(null);
+            selectRoom(null);
+            selectFloor(null);
+            setFloorMode('full');
+            issueCameraCommand('overview');
+          }}
           className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
             selectedFloorId === null ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -90,7 +99,13 @@ function FloorSelectorHUD() {
           <button
             key={f.id}
             aria-label={`Show ${f.name}`}
-            onClick={() => { selectFloor(f.id); setFloorMode('isolate'); issueCameraCommand('focusFloor', f.id); }}
+            onClick={() => {
+              selectDevice(null);
+              selectRoom(null);
+              selectFloor(f.id);
+              setFloorMode('isolate');
+              issueCameraCommand('focusFloor', f.id);
+            }}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               selectedFloorId === f.id ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'
             }`}

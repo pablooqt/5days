@@ -2,8 +2,8 @@ import { BuildingConfig } from '@/types/building';
 import { validateBuildingConfig } from '@/lib/buildingSchema';
 
 const rawBuildingConfig: BuildingConfig = {
-  id: '5days-one',
-  name: '5days One Digital Twin',
+  id: 'omnitwin-one',
+  name: 'OmniTwin One',
   footprint: {
     width: 22,
     depth: 14,

@@ -36,6 +36,7 @@ export const DeviceObject: React.FC<DeviceObjectProps> = ({
   const selectedDeviceId = useDeviceStore((s) => s.selectedDeviceId);
   const selectDevice = useDeviceStore((s) => s.selectDevice);
   const selectFloor = useSelectionStore((s) => s.selectFloor);
+  const selectRoom = useSelectionStore((s) => s.selectRoom);
   const setFloorMode = useVisibilityStore((s) => s.setFloorMode);
   const issueCameraCommand = useCameraStore((s) => s.issueCommand);
   const isSelected = selectedDeviceId === definition.id;
@@ -43,12 +44,16 @@ export const DeviceObject: React.FC<DeviceObjectProps> = ({
   const handleClick = useCallback(
     (e: ThreeEvent<MouseEvent>) => {
       e.stopPropagation();
-      selectFloor(definition.floorId);
-      setFloorMode('isolate');
-      issueCameraCommand('focusFloor', definition.floorId);
-      selectDevice(isSelected ? null : definition.id);
+      const willSelect = !isSelected;
+      selectDevice(willSelect ? definition.id : null);
+      if (willSelect) {
+        selectFloor(definition.floorId);
+        selectRoom(definition.roomId);
+        setFloorMode('isolate');
+        issueCameraCommand('focusDevice', definition.id);
+      }
     },
-    [definition.floorId, definition.id, isSelected, selectFloor, setFloorMode, issueCameraCommand, selectDevice]
+    [definition.floorId, definition.roomId, definition.id, isSelected, selectFloor, selectRoom, setFloorMode, issueCameraCommand, selectDevice]
   );
 
   const handlePointerOver = useCallback((e: ThreeEvent<PointerEvent>) => {

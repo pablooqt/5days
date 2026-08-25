@@ -30,7 +30,7 @@ export const Navbar: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <span className="font-bold text-lg tracking-tight text-slate-900 leading-none">
-              5days
+              OmniTwin
             </span>
             <span className="text-[10px] uppercase font-semibold tracking-wider text-indigo-600 mt-0.5">
               3D Digital Twin

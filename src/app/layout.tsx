@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: '5days — Interactive 3D Building Management / Digital Twin',
+  title: 'OmniTwin — Interactive 3D Building Management / Digital Twin',
   description:
     'Interactive 3D Digital Twin web application for smart building monitoring, spatial telemetry, and device management.',
   keywords: [
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     'Facility Management',
     'Smart Building',
   ],
-    authors: [{ name: '5days Systems' }],
+    authors: [{ name: 'OmniTwin Systems' }],
 };
 
 export const viewport: Viewport = {

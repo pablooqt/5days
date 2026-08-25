@@ -23,8 +23,8 @@ export const IsometricCamera: React.FC<IsometricCameraProps> = ({
   enablePan = true,
   enableZoom = true,
   enableRotate = true,
-  minDistance = 10,
-  maxDistance = 70,
+  minDistance = 1.5,
+  maxDistance = 80,
 }) => {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const { camera } = useThree();
@@ -39,6 +39,19 @@ export const IsometricCamera: React.FC<IsometricCameraProps> = ({
     camera.position.set(18, 19, 18);
     camera.lookAt(0, 0.5, 0);
   }, [camera]);
+
+  // Unlock transition when user manually interacts
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const handleStart = () => {
+      isTransitioning.current = false;
+    };
+    controls.addEventListener('start', handleStart);
+    return () => {
+      controls.removeEventListener('start', handleStart);
+    };
+  }, []);
 
   // When command changes, set new targets and activate smooth lerp transition
   useEffect(() => {
@@ -70,6 +83,12 @@ export const IsometricCamera: React.FC<IsometricCameraProps> = ({
       controlsRef.current.update();
     } else {
       controlsRef.current.update();
+    }
+
+    const distToTarget = camera.position.distanceTo(controlsRef.current.target);
+    const zoomedIn = distToTarget < 16;
+    if (useCameraStore.getState().isZoomedIn !== zoomedIn) {
+      useCameraStore.getState().setIsZoomedIn(zoomedIn);
     }
   });
 

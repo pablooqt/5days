@@ -51,7 +51,7 @@ export const HeroSection: React.FC = () => {
           </h1>
 
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-             5days is an interactive digital twin — monitor floors, rooms, and devices, then control them in real time from one clear 3D workspace.
+             OmniTwin is an interactive digital twin — monitor floors, rooms, and devices, then control them in real time from one clear 3D workspace.
           </p>
 
           {/* Action CTAs */}

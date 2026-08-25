@@ -41,6 +41,7 @@ export const Room: React.FC<RoomProps> = ({
   const setFloorMode = useVisibilityStore((s) => s.setFloorMode);
 
   // Device data for this room
+  const selectDevice = useDeviceStore((s) => s.selectDevice);
   const definitions = useDeviceStore((s) => s.definitions);
   const states = useDeviceStore((s) => s.states);
   const devicesByRoom = useDeviceStore((s) => s.devicesByRoom);
@@ -94,9 +95,10 @@ export const Room: React.FC<RoomProps> = ({
       e.stopPropagation();
       selectFloor(room.floorId);
       setFloorMode('isolate');
+      selectDevice(null);
       selectRoom(isSelected ? null : room.id);
     },
-    [room.floorId, room.id, isSelected, selectFloor, selectRoom, setFloorMode]
+    [room.floorId, room.id, isSelected, selectFloor, selectRoom, setFloorMode, selectDevice]
   );
 
   const handleDoubleClick = useCallback(
@@ -104,10 +106,11 @@ export const Room: React.FC<RoomProps> = ({
       e.stopPropagation();
       selectFloor(room.floorId);
       setFloorMode('isolate');
+      selectDevice(null);
       selectRoom(room.id);
       issueCameraCommand('focusRoom', room.id);
     },
-    [room.floorId, room.id, selectFloor, selectRoom, setFloorMode, issueCameraCommand]
+    [room.floorId, room.id, selectFloor, selectRoom, setFloorMode, issueCameraCommand, selectDevice]
   );
 
   return (

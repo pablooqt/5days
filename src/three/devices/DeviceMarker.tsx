@@ -4,6 +4,9 @@ import React, { useCallback } from 'react';
 import { Html } from '@react-three/drei';
 import { DeviceDefinition, DeviceState } from '@/types/devices';
 import { useDeviceStore } from '@/stores/useDeviceStore';
+import { useSelectionStore } from '@/stores/useSelectionStore';
+import { useVisibilityStore } from '@/stores/useVisibilityStore';
+import { useCameraStore } from '@/stores/useCameraStore';
 
 interface DeviceMarkerProps {
   definition: DeviceDefinition;
@@ -33,13 +36,28 @@ export const DeviceMarker: React.FC<DeviceMarkerProps> = ({
   isSelected,
 }) => {
   const selectDevice = useDeviceStore((s) => s.selectDevice);
+  const selectedDeviceId = useDeviceStore((s) => s.selectedDeviceId);
+  const selectFloor = useSelectionStore((s) => s.selectFloor);
+  const selectRoom = useSelectionStore((s) => s.selectRoom);
+  const setFloorMode = useVisibilityStore((s) => s.setFloorMode);
+  const issueCameraCommand = useCameraStore((s) => s.issueCommand);
+  const isZoomedIn = useCameraStore((s) => s.isZoomedIn);
+
+  const shouldHide = (isZoomedIn && !isSelected) || Boolean(selectedDeviceId && !isSelected);
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      selectDevice(isSelected ? null : definition.id);
+      const willSelect = !isSelected;
+      selectDevice(willSelect ? definition.id : null);
+      if (willSelect) {
+        selectFloor(definition.floorId);
+        selectRoom(definition.roomId);
+        setFloorMode('isolate');
+        issueCameraCommand('focusDevice', definition.id);
+      }
     },
-    [definition.id, isSelected, selectDevice]
+    [definition.floorId, definition.roomId, definition.id, isSelected, selectDevice, selectFloor, selectRoom, setFloorMode, issueCameraCommand]
   );
 
   const icon = DEVICE_TYPE_ICONS[definition.type] ?? '📡';
@@ -56,28 +74,38 @@ export const DeviceMarker: React.FC<DeviceMarkerProps> = ({
   else if (deviceState.type === 'sensor') statusLabel = `${deviceState.state.value.toFixed(1)}${deviceState.state.unit}`;
   else if (deviceState.type === 'elevator') statusLabel = `Floor ${deviceState.state.currentFloor}`;
 
+  const yOffset =
+    definition.type === 'ac' ? 0.75
+    : definition.type === 'door' ? 1.45
+    : definition.type === 'elevator' ? 1.65
+    : definition.type === 'light' ? 0.65
+    : definition.type === 'cctv' ? 0.65
+    : 0.60;
+
   return (
     <Html
-      position={definition.position}
+      position={[0, yOffset, 0]}
       center
-      distanceFactor={30}
+      distanceFactor={16}
       zIndexRange={[20, 10]}
-      className="pointer-events-auto select-none"
+      className={`transition-opacity duration-300 select-none ${
+        shouldHide ? 'opacity-0 pointer-events-none' : 'pointer-events-auto'
+      }`}
     >
       <div
         onClick={handleClick}
-        className={`group flex items-center gap-1 px-1.5 py-1 rounded-lg border shadow-sm transition-all duration-150 cursor-pointer ${
+        className={`relative group flex items-center gap-1.5 px-2 py-1 rounded-xl border shadow-md transition-all duration-150 cursor-pointer ${
           isSelected
-            ? 'bg-slate-800 border-slate-700 text-white scale-110 shadow-slate-400/40 shadow-md'
+            ? 'bg-slate-900 border-slate-700 text-white shadow-indigo-500/30 ring-2 ring-indigo-400'
             : isPoweredOff || isCctvOffline
             ? 'bg-rose-50/95 backdrop-blur-sm border-rose-200 text-rose-800 hover:bg-rose-100 hover:border-rose-300 hover:scale-105'
-            : 'bg-white/95 backdrop-blur-sm border-white text-slate-700 hover:bg-white hover:border-slate-200 hover:scale-105'
+            : 'bg-white/95 backdrop-blur-sm border-slate-200/80 text-slate-700 hover:bg-white hover:border-slate-300 hover:scale-105'
         }`}
       >
-        <span className="w-5 h-5 rounded-md bg-slate-100 flex items-center justify-center text-[10px] leading-none">{icon}</span>
-        <span className="text-[9px] font-bold tracking-tight leading-none">{definition.id.split('_')[0]}</span>
+        <span className="w-4 h-4 rounded-md bg-slate-100/90 flex items-center justify-center text-[10px] leading-none shrink-0">{icon}</span>
+        <span className="text-[10px] font-bold tracking-tight leading-none whitespace-nowrap">{definition.id.split('_')[0]}</span>
         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot}`} />
-        <span className={`text-[8px] font-mono leading-none ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
+        <span className={`text-[9px] font-mono leading-none whitespace-nowrap ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
           {statusLabel}
         </span>
       </div>

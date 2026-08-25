@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
                 <Building2 className="w-4 h-4" />
               </div>
               <span className="font-bold text-lg text-slate-900 tracking-tight">
-                5days
+                OmniTwin
               </span>
             </div>
             <p className="text-xs text-slate-500 leading-relaxed">
@@ -89,7 +89,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom copyright */}
         <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© 2026 5days Digital Twin Technologies. Built according to PRD specifications.</p>
+          <p>© 2026 OmniTwin Digital Twin Technologies. Built according to PRD specifications.</p>
           <div className="flex items-center gap-6">
             <span>Desktop & Tablet Optimized</span>
             <span>Version 1.0 (MVP)</span>

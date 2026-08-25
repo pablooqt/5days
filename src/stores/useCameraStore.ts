@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { demoBuildingConfig } from '@/config/building';
+import { useDeviceStore } from '@/stores/useDeviceStore';
 
 export type CameraCommandType =
   | 'overview'
@@ -18,6 +19,8 @@ export interface CameraCommand {
 
 interface CameraState {
   command: CameraCommand;
+  isZoomedIn: boolean;
+  setIsZoomedIn: (val: boolean) => void;
   issueCommand: (type: CameraCommandType, targetId?: string) => void;
   setCustomTarget: (position: [number, number, number], target: [number, number, number]) => void;
 }
@@ -35,6 +38,8 @@ export const useCameraStore = create<CameraState>((set) => ({
     target: INITIAL_TARGET,
     nonce: 1,
   },
+  isZoomedIn: false,
+  setIsZoomedIn: (val) => set({ isZoomedIn: val }),
   issueCommand: (type, targetId) => {
     let position: [number, number, number] = DEFAULT_POSITION;
     let target: [number, number, number] = DEFAULT_TARGET;
@@ -55,6 +60,22 @@ export const useCameraStore = create<CameraState>((set) => ({
           target = [worldX, worldY + 1.0, worldZ];
           position = [worldX + 11, worldY + 9, worldZ + 11];
           break;
+        }
+      }
+    } else if (type === 'focusDevice' && targetId) {
+      const device = useDeviceStore.getState().definitions[targetId];
+      if (device) {
+        const floor = demoBuildingConfig.floors.find((f) => f.id === device.floorId);
+        const room = floor?.rooms.find((r) => r.id === device.roomId);
+        if (floor && room) {
+          const devX = device.position ? device.position[0] : 0;
+          const devY = device.position ? device.position[1] : 1.5;
+          const devZ = device.position ? device.position[2] : 0;
+          const worldX = room.position[0] + devX;
+          const worldY = floor.elevation + room.position[1] + devY;
+          const worldZ = room.position[2] + devZ;
+          target = [worldX, worldY, worldZ];
+          position = [worldX + 4.5, worldY + 3.8, worldZ + 4.5];
         }
       }
     }
