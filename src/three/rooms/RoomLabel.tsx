@@ -59,7 +59,7 @@ export const RoomLabel: React.FC<RoomLabelProps> = ({
       center
       distanceFactor={18}
       zIndexRange={[10, 0]}
-      className={`transition-opacity duration-300 select-none ${
+      className={`max-w-[min(14rem,40vw)] transition-opacity duration-300 select-none ${
         shouldHide ? 'opacity-0 pointer-events-none' : 'pointer-events-auto'
       }`}
     >
@@ -75,7 +75,7 @@ export const RoomLabel: React.FC<RoomLabelProps> = ({
           selectRoom(room.id);
           issueCameraCommand('focusRoom', room.id);
         }}
-        className={`group flex items-center gap-1.5 px-2 py-1 rounded-xl border shadow-sm transition-all duration-200 cursor-pointer ${
+        className={`group flex max-w-full items-center gap-1.5 rounded-xl border px-2 py-1 shadow-sm transition-all duration-200 cursor-pointer ${
           isSelected
             ? 'bg-[#B8F0DE] border-[#70D2B0] text-slate-800 shadow-emerald-200/70 scale-105'
             : isHovered
@@ -86,7 +86,7 @@ export const RoomLabel: React.FC<RoomLabelProps> = ({
         <span className={`p-0.5 rounded-full ${isSelected ? 'bg-white/20' : 'bg-slate-100'}`}>
           <RoomTypeIcon type={room.type} />
         </span>
-        <span className="text-[10px] font-semibold tracking-tight whitespace-nowrap">
+        <span className="truncate text-[10px] font-semibold tracking-tight">
           {room.name.split('&')[0].trim()}
         </span>
         {room.deviceIds.length > 0 && (

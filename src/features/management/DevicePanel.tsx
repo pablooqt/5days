@@ -2,8 +2,12 @@
 
 import React, { useRef, useState } from 'react';
 import { useDeviceStore } from '@/stores/useDeviceStore';
+import { useSelectionStore } from '@/stores/useSelectionStore';
+import { useVisibilityStore } from '@/stores/useVisibilityStore';
+import { useCameraStore } from '@/stores/useCameraStore';
 import { controlDevice } from '@/services/deviceCommands';
-import { demoBuildingConfig } from '@/config/building';
+import { useActiveBuildingConfig } from '@/stores/useBuildingStore';
+import { formatDeviceLabel } from '@/lib/deviceLabels';
 import {
   Thermometer, Lock, LockOpen, Video, Eye,
   Wind, Sun, DoorOpen, DoorClosed, Power, WifiOff, MapPin, Activity,
@@ -19,14 +23,20 @@ export const DevicePanel: React.FC<DevicePanelProps> = ({ embedded = false }) =>
   const definitions = useDeviceStore((s) => s.definitions);
   const states = useDeviceStore((s) => s.states);
   const selectDevice = useDeviceStore((s) => s.selectDevice);
+  const callElevator = useDeviceStore((s) => s.callElevator);
+  const selectFloor = useSelectionStore((s) => s.selectFloor);
+  const setFloorMode = useVisibilityStore((s) => s.setFloorMode);
+  const issueCameraCommand = useCameraStore((s) => s.issueCommand);
   const setCctvState = useDeviceStore((s) => s.setCctvState);
   const setAcState = useDeviceStore((s) => s.setAcState);
   const setLightState = useDeviceStore((s) => s.setLightState);
+  const setDeviceStatus = useDeviceStore((s) => s.setDeviceStatus);
   const [draftTemperature, setDraftTemperature] = useState<Record<string, number>>({});
   const [draftBrightness, setDraftBrightness] = useState<Record<string, number>>({});
   const [draftColorTemp, setDraftColorTemp] = useState<Record<string, number>>({});
   const dragBaseline = useRef<import('@/types/devices').DeviceState | null>(null);
   const isDragging = useRef(false);
+  const building = useActiveBuildingConfig();
 
   if (!selectedDeviceId) return null;
   const def = definitions[selectedDeviceId];
@@ -47,11 +57,20 @@ export const DevicePanel: React.FC<DevicePanelProps> = ({ embedded = false }) =>
     void controlDevice({ deviceId: def.id, command, args, previousState: baseline, optimistic: false });
   };
 
-  const floor = demoBuildingConfig.floors.find((item) => item.id === def.floorId);
-  const room = floor?.rooms.find((item) => item.id === def.roomId);
+  const resolvedFloor = deviceState.type === 'elevator'
+    ? building.floors[deviceState.state.currentFloor - 1] ?? building.floors[0]
+    : building.floors.find((item) => item.id === def.floorId);
+  const floor = resolvedFloor;
+  const room = deviceState.type === 'elevator'
+    ? floor?.rooms[0]
+    : floor?.rooms.find((item) => item.id === def.roomId);
   const typeLabel = def.type === 'ac' ? 'Climate control' : def.type === 'light' ? 'Lighting' : def.type === 'door' ? 'Access point' : def.type === 'cctv' ? 'Security camera' : def.type === 'sensor' ? 'Environment sensor' : 'Vertical transport';
 
   const isPoweredOff = (deviceState.type === 'ac' || deviceState.type === 'light') && !deviceState.state.power;
+  const relatedAc = deviceState.type === 'sensor'
+    ? Object.values(definitions).find((device) => device.type === 'ac' && device.roomId === def.roomId)
+    : null;
+  const relatedAcState = relatedAc ? states[relatedAc.id] : null;
   const statusColor =
     isPoweredOff ? 'text-rose-600 bg-rose-50 border-rose-200'
     : def.status === 'warning' ? 'text-amber-600 bg-amber-50 border-amber-200'
@@ -68,7 +87,7 @@ export const DevicePanel: React.FC<DevicePanelProps> = ({ embedded = false }) =>
         <div>
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-600">
-              {def.type === 'ac' ? <Snowflake className="w-4 h-4" /> : def.type === 'light' ? <Lightbulb className="w-4 h-4" /> : def.type === 'door' ? <DoorClosed className="w-4 h-4" /> : def.type === 'cctv' ? <Eye className="w-4 h-4" /> : def.type === 'sensor' ? <Gauge className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
+              {def.type === 'ac' ? <Snowflake className="w-4 h-4" /> : def.type === 'light' ? <Lightbulb className="w-4 h-4" /> : def.type === 'door' ? (deviceState.type === 'door' && deviceState.state.open ? <DoorOpen className="w-4 h-4" /> : <DoorClosed className="w-4 h-4" />) : def.type === 'cctv' ? <Eye className="w-4 h-4" /> : def.type === 'sensor' ? <Gauge className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
             </div>
             <div>
             <h3 className="text-sm font-bold text-slate-900">{def.name}</h3>
@@ -79,7 +98,7 @@ export const DevicePanel: React.FC<DevicePanelProps> = ({ embedded = false }) =>
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide ${statusColor}`}>
               {isPoweredOff ? 'off' : def.status}
             </span>
-            <span className="text-[10px] font-mono text-slate-400">{def.id}</span>
+             <span className="text-[10px] font-mono text-slate-400">{formatDeviceLabel(def.id)}</span>
           </div>
         </div>
         <button
@@ -93,7 +112,7 @@ export const DevicePanel: React.FC<DevicePanelProps> = ({ embedded = false }) =>
           <MapPin className="w-3 h-3 text-indigo-500" />
           <span>{floor?.name ?? def.floorId}</span>
           <span className="text-slate-300">/</span>
-          <span>{room?.name ?? 'Shared area'}</span>
+           <span>{deviceState.type === 'elevator' ? 'Elevator Landing' : room?.name ?? 'Shared area'}</span>
         </div>
       </div>
 
@@ -300,14 +319,25 @@ export const DevicePanel: React.FC<DevicePanelProps> = ({ embedded = false }) =>
           <div className="flex justify-between py-1.5">
             <span className="text-slate-500 text-xs font-medium">Alert Status</span>
             <span className={`text-xs font-bold ${deviceState.state.status === 'warning' ? 'text-amber-600' : 'text-emerald-600'}`}>
-              {deviceState.state.status === 'warning' ? '⚠ Warning' : '✓ Normal'}
+               {deviceState.state.status === 'warning' ? 'Warning' : 'Normal'}
             </span>
           </div>
-          <p className="text-[10px] text-slate-400 pt-1">Sensors are read-only. Values update via telemetry.</p>
+           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+             <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Diagnosis</p>
+             <p className="mt-1 text-xs font-semibold text-amber-900">{deviceState.state.value > 27 ? 'Room temperature is above the safe threshold.' : deviceState.state.value > 26 ? 'Temperature is recovering toward the safe range.' : 'Temperature is within the safe range.'}</p>
+             <div className="mt-2 space-y-1 text-[10px] text-amber-800">
+               <div className="flex justify-between"><span>Warning threshold</span><strong>27°C</strong></div>
+               <div className="flex justify-between"><span>Recommended target</span><strong>22°C</strong></div>
+              {relatedAc && relatedAcState?.type === 'ac' && <div className="flex justify-between"><span>{relatedAc.name}</span><strong>{relatedAcState.state.power ? `${relatedAcState.state.temperature}°C target` : 'Off'}</strong></div>}
+             </div>
+             {deviceState.state.value > 27 && relatedAc && <button onClick={() => { setAcState(relatedAc.id, { power: true, temperature: 22, mode: 'cool', fanSpeed: 'high' }); setDeviceStatus(relatedAc.id, 'active'); setDeviceStatus(def.id, 'active'); selectDevice(relatedAc.id); issueCameraCommand('focusDevice', relatedAc.id); }} className="mt-3 w-full rounded-lg bg-amber-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-amber-700">Fix temperature automatically</button>}
+             {!relatedAc && deviceState.state.value > 27 && <p className="mt-2 text-[10px] font-semibold text-amber-800">No AC found in this room. Add an AC from Edit Building to fix this alert.</p>}
+           </div>
+           <p className="text-[10px] text-slate-400 pt-1">Sensors are read-only. Values update via telemetry.</p>
         </div>
       )}
 
-      {/* ── Elevator (read-only) ──────────────────────────────────────────── */}
+      {/* ── Elevator controls ─────────────────────────────────────────────── */}
       {deviceState.type === 'elevator' && (
         <div className="space-y-2">
           <div className="flex justify-between py-1.5 border-b border-slate-50">
@@ -321,6 +351,39 @@ export const DevicePanel: React.FC<DevicePanelProps> = ({ embedded = false }) =>
           <div className="flex justify-between py-1.5">
             <span className="text-slate-500 text-xs font-medium">Door</span>
             <span className="font-bold text-xs">{deviceState.state.doorOpen ? <span className="text-emerald-600">Open</span> : <span className="text-slate-700">Closed</span>}</span>
+          </div>
+          <div className="border-t border-slate-100 pt-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-600">Go to floor</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600">
+                {deviceState.state.phase === 'idle' ? 'Ready' : deviceState.state.phase.replace('_', ' ')}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {building.floors.map((floor) => {
+                const floorNumber = floor.index + 1;
+                const disabled = deviceState.state.phase !== 'idle' || floorNumber === deviceState.state.currentFloor;
+                return (
+                  <button
+                    key={floorNumber}
+                    disabled={disabled}
+                    onClick={() => {
+                      callElevator(def.id, floorNumber, building.floors.length);
+                      window.setTimeout(() => {
+                        const destination = building.floors.find((floor) => floor.index + 1 === floorNumber);
+                        if (!destination) return;
+                        selectFloor(destination.id);
+                        setFloorMode('isolate');
+                        issueCameraCommand('focusFloor', destination.id);
+                      }, Math.abs(floorNumber - deviceState.state.currentFloor) * 900 + 1100);
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    F{floorNumber}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

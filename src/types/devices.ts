@@ -25,6 +25,7 @@ export interface ElevatorState {
   targetFloor: number | null;
   direction: 'up' | 'down' | 'idle';
   doorOpen: boolean;
+  phase: 'idle' | 'doors_closing' | 'moving' | 'doors_opening';
 }
 
 export interface CctvState {
@@ -54,6 +55,7 @@ export interface DeviceDefinition {
   type: DeviceType;
   roomId: string;
   floorId: string;
+  openingId?: string;
   capabilities: Capability[];
   status: DeviceStatus;
   /** Local position relative to room center [x, y, z] */

@@ -12,7 +12,7 @@ import { useVisibilityStore } from '@/stores/useVisibilityStore';
 import { useCameraStore } from '@/stores/useCameraStore';
 import { useDeviceStore } from '@/stores/useDeviceStore';
 import { useUIStore } from '@/stores/useUIStore';
-import { demoBuildingConfig } from '@/config/building';
+import { useActiveBuildingConfig, useBuildingStore } from '@/stores/useBuildingStore';
 import {
   Building2,
   Eye,
@@ -26,6 +26,7 @@ import {
 import Link from 'next/link';
 import { useSupabaseSnapshot } from '@/hooks/useSupabaseSnapshot';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
+import { BuildingEditorPanel, BuildingEditorToolbar, EditorToggle } from '@/features/management/BuildingEditor';
 
 // ─── Deep-link handler (P4-3) ───────────────────────────────────────────────
 function DeepLinkHandler() {
@@ -35,6 +36,7 @@ function DeepLinkHandler() {
   const setFloorMode = useVisibilityStore((s) => s.setFloorMode);
   const selectRoom   = useSelectionStore((s) => s.selectRoom);
   const issueCameraCommand = useCameraStore((s) => s.issueCommand);
+  const building = useActiveBuildingConfig();
 
   useEffect(() => {
     const deviceId = searchParams.get('device');
@@ -50,7 +52,7 @@ function DeepLinkHandler() {
       }
     }
     if (roomId) {
-      const room = demoBuildingConfig.floors
+      const room = building.floors
         .flatMap((floor) => floor.rooms)
         .find((candidate) => candidate.id === roomId);
       if (room) {
@@ -60,14 +62,14 @@ function DeepLinkHandler() {
       selectRoom(roomId);
       issueCameraCommand('focusRoom', roomId);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+  }, [building, issueCameraCommand, selectDevice, selectFloor, selectRoom, setFloorMode, searchParams]);
 
   return null;
 }
 
 // ─── Floor Selector HUD ──────────────────────────────────────────────────────
 function FloorSelectorHUD() {
+  const building = useActiveBuildingConfig();
   const selectedFloorId = useSelectionStore((s) => s.selectedFloorId);
   const selectFloor  = useSelectionStore((s) => s.selectFloor);
   const selectRoom   = useSelectionStore((s) => s.selectRoom);
@@ -77,9 +79,9 @@ function FloorSelectorHUD() {
   const issueCameraCommand = useCameraStore((s) => s.issueCommand);
 
   return (
-    <div className="absolute bottom-5 left-5 z-20 flex flex-col gap-2">
+    <div className="pointer-events-auto absolute bottom-3 left-3 right-3 flex flex-col gap-2 sm:bottom-5 sm:left-5 sm:right-auto">
       {/* Floor pills */}
-      <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 shadow-lg flex items-center gap-1">
+      <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 p-1.5 shadow-lg backdrop-blur-md">
         <button
           aria-label="Show all floors"
           onClick={() => {
@@ -95,7 +97,7 @@ function FloorSelectorHUD() {
         >
           All
         </button>
-        {demoBuildingConfig.floors.map((f) => (
+        {building.floors.map((f) => (
           <button
             key={f.id}
             aria-label={`Show ${f.name}`}
@@ -145,7 +147,7 @@ function ViewControlsHUD() {
   const issueCameraCommand    = useCameraStore((s) => s.issueCommand);
 
   return (
-    <div className="absolute bottom-5 right-5 z-20 flex items-center gap-2">
+    <div className="pointer-events-auto absolute bottom-14 right-3 flex items-center gap-2 sm:bottom-5 sm:right-5">
       <Button
         size="sm"
         variant="outline"
@@ -173,10 +175,11 @@ function ViewControlsHUD() {
 }
 
 function SceneStatusHUD() {
+  const building = useActiveBuildingConfig();
   const selectedFloorId = useSelectionStore((s) => s.selectedFloorId);
   const definitions = useDeviceStore((s) => s.definitions);
   const states = useDeviceStore((s) => s.states);
-  const selectedFloor = demoBuildingConfig.floors.find((floor) => floor.id === selectedFloorId);
+   const selectedFloor = building.floors.find((floor) => floor.id === selectedFloorId);
   const floorDeviceIds = Object.values(definitions).filter((device) => device.floorId === selectedFloorId);
   const onlineCount = floorDeviceIds.filter((device) => device.status !== 'offline').length;
   const warnings = floorDeviceIds.filter((device) => device.status === 'warning').length;
@@ -220,12 +223,51 @@ export default function ManagementPage() {
   useRealtimeSync();
   const [sidebarTab, setSidebarTab] = useState('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const hydrateBuilding = useBuildingStore((state) => state.hydrate);
+  const building = useActiveBuildingConfig();
+  const editorMode = useBuildingStore((state) => state.editorMode);
+  const cancelPlacement = useBuildingStore((state) => state.cancelPlacement);
+  const selectedObjectId = useBuildingStore((state) => state.selectedObjectId);
+  const deleteObject = useBuildingStore((state) => state.deleteObject);
+  const activeEditorFloorId = useBuildingStore((state) => state.activeEditorFloorId);
+  const setEditorFloor = useBuildingStore((state) => state.setEditorFloor);
   const clearSelection = useSelectionStore((s) => s.clearSelection);
   const selectFloor    = useSelectionStore((s) => s.selectFloor);
   const selectedRoomId = useSelectionStore((s) => s.selectedRoomId);
   const setFloorMode   = useVisibilityStore((s) => s.setFloorMode);
   const toggleTransparentWalls = useVisibilityStore((s) => s.toggleTransparentWalls);
   const issueCameraCommand  = useCameraStore((s) => s.issueCommand);
+
+  useEffect(() => { hydrateBuilding(); }, [hydrateBuilding]);
+
+  useEffect(() => {
+    const firstFloorId = building.floors[0]?.id;
+    if (!firstFloorId) return;
+
+    const selectedFloorIsValid = !useSelectionStore.getState().selectedFloorId
+      || building.floors.some((floor) => floor.id === useSelectionStore.getState().selectedFloorId);
+    if (!selectedFloorIsValid) {
+      selectFloor(firstFloorId);
+      setFloorMode('isolate');
+      issueCameraCommand('focusFloor', firstFloorId);
+    }
+
+    if (activeEditorFloorId && !building.floors.some((floor) => floor.id === activeEditorFloorId)) {
+      setEditorFloor(firstFloorId);
+    }
+  }, [activeEditorFloorId, building.floors, issueCameraCommand, selectFloor, setEditorFloor, setFloorMode]);
+
+  useEffect(() => {
+    const handleEditorKey = (event: KeyboardEvent) => {
+      if (!editorMode) return;
+      if (event.key === 'Escape') cancelPlacement();
+      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedObjectId && event.target instanceof HTMLElement && !['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName)) {
+        deleteObject(selectedObjectId);
+      }
+    };
+    window.addEventListener('keydown', handleEditorKey);
+    return () => window.removeEventListener('keydown', handleEditorKey);
+  }, [cancelPlacement, deleteObject, editorMode, selectedObjectId]);
 
   // Keyboard shortcuts (PRD §21.3 / P4-3)
   useEffect(() => {
@@ -266,8 +308,8 @@ export default function ManagementPage() {
           <div className="h-4 w-px bg-slate-200" />
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-indigo-600" />
-            <span className="font-bold text-sm text-slate-900">{demoBuildingConfig.name}</span>
-            <Badge variant="accent" className="text-[10px] py-0 px-2">Management Mode</Badge>
+             <span className="font-bold text-sm text-slate-900">{building.name}</span>
+             <Badge variant="accent" className="text-[10px] py-0 px-2">{editorMode ? 'Edit Mode' : 'Management Mode'}</Badge>
           </div>
         </div>
 
@@ -284,16 +326,22 @@ export default function ManagementPage() {
          <LeftSidebar activeTab={sidebarTab} onTabChange={(tab) => { setSidebarTab(tab); setMobileSidebarOpen(false); }} mobileOpen={mobileSidebarOpen} />
 
         {/* 3D Viewport (always dominant) */}
-        <div className="relative flex-1 overflow-hidden">
+         <div className="relative min-h-[24rem] min-w-0 flex-1 overflow-hidden md:min-h-0">
           <Suspense fallback={null}>
             <DeepLinkHandler />
           </Suspense>
 
-          <SceneCanvas
+           <SceneCanvas
             autoRotate={false}
             interactive={true}
             className="w-full h-full"
-          />
+           />
+
+           <div className="pointer-events-none absolute left-3 top-3 z-30">
+             <EditorToggle />
+             <BuildingEditorToolbar />
+           </div>
+           <BuildingEditorPanel />
 
            <FloorSelectorHUD />
            <SceneStatusHUD />

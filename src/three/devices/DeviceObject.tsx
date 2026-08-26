@@ -12,7 +12,10 @@ import { LightMesh } from './LightMesh';
 import { DoorMesh } from './DoorMesh';
 import { CctvMesh } from './CctvMesh';
 import { SensorMesh } from './SensorMesh';
+import { ElevatorMesh } from './ElevatorMesh';
 import { DeviceMarker } from './DeviceMarker';
+import { useActiveBuildingConfig } from '@/stores/useBuildingStore';
+import { getElevatorLocation } from '@/lib/elevatorLocation';
 
 interface DeviceObjectProps {
   definition: DeviceDefinition;
@@ -22,6 +25,9 @@ interface DeviceObjectProps {
   rotation?: [number, number, number];
   doorWidth?: number;
   doorHeight?: number;
+  markerIndex?: number;
+  markerCount?: number;
+  floorHeight?: number;
 }
 
 export const DeviceObject: React.FC<DeviceObjectProps> = ({
@@ -32,6 +38,9 @@ export const DeviceObject: React.FC<DeviceObjectProps> = ({
   rotation,
   doorWidth,
   doorHeight,
+  markerIndex = 0,
+  markerCount = 1,
+  floorHeight,
 }) => {
   const selectedDeviceId = useDeviceStore((s) => s.selectedDeviceId);
   const selectDevice = useDeviceStore((s) => s.selectDevice);
@@ -40,6 +49,7 @@ export const DeviceObject: React.FC<DeviceObjectProps> = ({
   const setFloorMode = useVisibilityStore((s) => s.setFloorMode);
   const issueCameraCommand = useCameraStore((s) => s.issueCommand);
   const isSelected = selectedDeviceId === definition.id;
+  const building = useActiveBuildingConfig();
 
   const handleClick = useCallback(
     (e: ThreeEvent<MouseEvent>) => {
@@ -47,13 +57,14 @@ export const DeviceObject: React.FC<DeviceObjectProps> = ({
       const willSelect = !isSelected;
       selectDevice(willSelect ? definition.id : null);
       if (willSelect) {
-        selectFloor(definition.floorId);
-        selectRoom(definition.roomId);
+        const elevatorLocation = deviceState.type === 'elevator' ? getElevatorLocation(building, deviceState.state) : null;
+        selectFloor(elevatorLocation?.floor.id ?? definition.floorId);
+        selectRoom(elevatorLocation ? null : definition.roomId);
         setFloorMode('isolate');
         issueCameraCommand('focusDevice', definition.id);
       }
     },
-    [definition.floorId, definition.roomId, definition.id, isSelected, selectFloor, selectRoom, setFloorMode, issueCameraCommand, selectDevice]
+    [building, definition.floorId, definition.roomId, definition.id, deviceState, isSelected, selectFloor, selectRoom, setFloorMode, issueCameraCommand, selectDevice]
   );
 
   const handlePointerOver = useCallback((e: ThreeEvent<PointerEvent>) => {
@@ -98,6 +109,9 @@ export const DeviceObject: React.FC<DeviceObjectProps> = ({
       {deviceState.type === 'sensor' && (
         <SensorMesh state={deviceState.state} status={definition.status} />
       )}
+      {deviceState.type === 'elevator' && (
+        <ElevatorMesh state={deviceState.state} status={definition.status} floorHeight={floorHeight} />
+      )}
 
       {/* Floating marker badge */}
       {showMarkers && (
@@ -105,6 +119,8 @@ export const DeviceObject: React.FC<DeviceObjectProps> = ({
           definition={definition}
           deviceState={deviceState}
           isSelected={isSelected}
+          markerIndex={markerIndex}
+          markerCount={markerCount}
         />
       )}
 

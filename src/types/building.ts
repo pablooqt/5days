@@ -64,3 +64,24 @@ export interface BuildingConfig {
   wallThickness: number;
   floors: FloorConfig[];
 }
+
+export type LayoutObjectKind = 'ac' | 'light' | 'sensor' | 'cctv' | 'sofa' | 'bed' | 'table' | 'chair' | 'plant';
+
+export type EditorTool = 'select' | 'place' | 'move';
+
+export interface LayoutObject {
+  id: string;
+  kind: LayoutObjectKind;
+  name: string;
+  floorId: string;
+  roomId?: string;
+  deviceId?: string;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+}
+
+export interface EditableBuildingLayout {
+  building: BuildingConfig;
+  objects: LayoutObject[];
+}

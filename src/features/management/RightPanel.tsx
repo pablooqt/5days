@@ -5,7 +5,8 @@ import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useVisibilityStore } from '@/stores/useVisibilityStore';
 import { useCameraStore } from '@/stores/useCameraStore';
 import { useDeviceStore } from '@/stores/useDeviceStore';
-import { demoBuildingConfig } from '@/config/building';
+import { useActiveBuildingConfig } from '@/stores/useBuildingStore';
+import { formatDeviceLabel } from '@/lib/deviceLabels';
 import { DevicePanel } from './DevicePanel';
 import { Building2, Focus, Layers, X } from 'lucide-react';
 
@@ -21,19 +22,20 @@ export const RightPanel: React.FC = () => {
   const selectDevice = useDeviceStore((s) => s.selectDevice);
   const deviceDefinitions = useDeviceStore((s) => s.definitions);
   const devicesByRoom = useDeviceStore((s) => s.devicesByRoom);
+  const building = useActiveBuildingConfig();
 
   const selectedRoom = selectedRoomId
-    ? demoBuildingConfig.floors.flatMap((f) => f.rooms).find((r) => r.id === selectedRoomId)
+     ? building.floors.flatMap((f) => f.rooms).find((r) => r.id === selectedRoomId)
     : null;
 
   const selectedFloor = selectedFloorId
-    ? demoBuildingConfig.floors.find((f) => f.id === selectedFloorId)
+     ? building.floors.find((f) => f.id === selectedFloorId)
     : null;
 
   // ── Device panel ─────────────────────────────────────────────────────────
   if (selectedDeviceId) {
     return (
-      <div className="fixed inset-x-0 bottom-0 z-40 max-h-[78vh] md:static md:w-80 md:max-h-none shrink-0 bg-white border-l border-slate-200 overflow-y-auto rounded-t-2xl md:rounded-none shadow-2xl md:shadow-none">
+       <div className="w-full max-h-[38vh] shrink-0 overflow-y-auto border-t border-slate-200 bg-white shadow-2xl md:static md:max-h-none md:w-80 md:border-l md:border-t-0 md:shadow-none">
         <DevicePanel embedded />
       </div>
     );
@@ -45,7 +47,7 @@ export const RightPanel: React.FC = () => {
     const onlineCount = roomDeviceIds.filter((id) => deviceDefinitions[id]?.status !== 'offline').length;
 
     return (
-      <div className="fixed inset-x-0 bottom-0 z-40 max-h-[78vh] md:static md:w-80 md:max-h-none shrink-0 bg-white border-l border-slate-200 overflow-y-auto rounded-t-2xl md:rounded-none shadow-2xl md:shadow-none">
+       <div className="w-full max-h-[38vh] shrink-0 overflow-y-auto border-t border-slate-200 bg-white shadow-2xl md:static md:max-h-none md:w-80 md:border-l md:border-t-0 md:shadow-none">
         <div className="p-4 border-b border-slate-100 flex items-start justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white flex items-center justify-center shadow-sm">
@@ -72,7 +74,7 @@ export const RightPanel: React.FC = () => {
           {[
             { label: 'Floor Plan Area', value: `${selectedRoom.width}m × ${selectedRoom.depth}m (${(selectedRoom.width * selectedRoom.depth).toFixed(1)} m²)` },
             { label: 'Ceiling Height', value: `${selectedRoom.height}m` },
-            { label: 'Floor', value: demoBuildingConfig.floors.find((f) => f.id === selectedRoom.floorId)?.name ?? selectedRoom.floorId },
+             { label: 'Floor', value: building.floors.find((f) => f.id === selectedRoom.floorId)?.name ?? selectedRoom.floorId },
           ].map(({ label, value }) => (
             <div key={label} className="flex justify-between text-xs">
               <span className="text-slate-500">{label}</span>
@@ -131,7 +133,7 @@ export const RightPanel: React.FC = () => {
     const warningCount = allFloorDeviceIds.filter((id) => deviceDefinitions[id]?.status === 'warning').length;
 
     return (
-      <div className="fixed inset-x-0 bottom-0 z-40 max-h-[78vh] md:static md:w-80 md:max-h-none shrink-0 bg-white border-l border-slate-200 overflow-y-auto rounded-t-2xl md:rounded-none shadow-2xl md:shadow-none">
+       <div className="w-full max-h-[38vh] shrink-0 overflow-y-auto border-t border-slate-200 bg-white shadow-2xl md:static md:max-h-none md:w-80 md:border-l md:border-t-0 md:shadow-none">
         <div className="p-4 border-b border-slate-100 flex items-start justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-500 text-white flex items-center justify-center shadow-sm">
@@ -191,19 +193,19 @@ export const RightPanel: React.FC = () => {
   const allDevices = Object.values(deviceDefinitions);
   const totalOnline  = allDevices.filter((d) => d.status !== 'offline').length;
   const totalWarning = allDevices.filter((d) => d.status === 'warning').length;
-  const totalRooms   = demoBuildingConfig.floors.reduce((acc, f) => acc + f.rooms.length, 0);
+  const totalRooms   = building.floors.reduce((acc, f) => acc + f.rooms.length, 0);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 max-h-[78vh] md:static md:w-80 md:max-h-none shrink-0 bg-white border-l border-slate-200 overflow-y-auto rounded-t-2xl md:rounded-none shadow-2xl md:shadow-none">
+    <div className="w-full max-h-[38vh] shrink-0 overflow-y-auto border-t border-slate-200 bg-white shadow-2xl md:static md:max-h-none md:w-80 md:border-l md:border-t-0 md:shadow-none">
       <div className="p-4 border-b border-slate-100">
         <h3 className="text-xs font-bold text-slate-900">Building Overview</h3>
-        <p className="text-[10px] text-slate-400 mt-0.5">{demoBuildingConfig.name}</p>
+        <p className="text-[10px] text-slate-400 mt-0.5">{building.name}</p>
       </div>
 
       <div className="p-4 space-y-3">
         <div className="grid grid-cols-2 gap-2">
           {[
-            { label: 'Floors',   value: demoBuildingConfig.floors.length, color: 'text-slate-800', bg: 'bg-slate-50 border-slate-100' },
+             { label: 'Floors',   value: building.floors.length, color: 'text-slate-800', bg: 'bg-slate-50 border-slate-100' },
             { label: 'Rooms',    value: totalRooms, color: 'text-slate-800', bg: 'bg-slate-50 border-slate-100' },
             { label: 'Online',   value: totalOnline, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-100' },
             { label: 'Warnings', value: totalWarning, color: totalWarning > 0 ? 'text-amber-700' : 'text-slate-400', bg: totalWarning > 0 ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100' },
@@ -217,7 +219,7 @@ export const RightPanel: React.FC = () => {
 
         {totalWarning > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-            <p className="text-[10px] font-bold text-amber-700 mb-1.5">⚠ Active Warnings</p>
+             <p className="text-[10px] font-bold text-amber-700 mb-1.5">Active Warnings</p>
             {allDevices.filter((d) => d.status === 'warning').map((d) => (
               <button
                 key={d.id}
@@ -231,7 +233,7 @@ export const RightPanel: React.FC = () => {
                 className="w-full text-left flex items-center gap-2 py-1 cursor-pointer hover:opacity-80"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                <span className="text-[10px] font-mono font-semibold text-amber-800">{d.id}</span>
+                 <span className="text-[10px] font-mono font-semibold text-amber-800">{formatDeviceLabel(d.id)}</span>
                 <span className="text-[10px] text-amber-600 ml-auto capitalize">{d.type}</span>
               </button>
             ))}

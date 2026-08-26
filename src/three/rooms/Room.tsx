@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { ThreeEvent } from '@react-three/fiber';
 import { RoomConfig } from '@/types/building';
 import { useSelectionStore } from '@/stores/useSelectionStore';
@@ -11,7 +11,10 @@ import { FloorSurface } from './FloorSurface';
 import { RoomWalls } from './Wall';
 import { RoomLabel } from './RoomLabel';
 import { DeviceObject } from '../devices/DeviceObject';
-import { RoomInterior } from './RoomInterior';
+import { getDoorTransform } from '@/lib/doorGeometry';
+import { getAcTransform } from '@/lib/deviceGeometry';
+import { useBuildingStore } from '@/stores/useBuildingStore';
+import { LayoutObjectMesh } from '../building/LayoutObjectMesh';
 
 interface RoomProps {
   room: RoomConfig;
@@ -46,29 +49,15 @@ export const Room: React.FC<RoomProps> = ({
   const states = useDeviceStore((s) => s.states);
   const devicesByRoom = useDeviceStore((s) => s.devicesByRoom);
   const roomDeviceIds = devicesByRoom[room.id] ?? [];
+  const allLayoutObjects = useBuildingStore((s) => s.layout.objects);
+  const layoutObjects = useMemo(
+    () => allLayoutObjects.filter((object) => object.roomId === room.id),
+    [allLayoutObjects, room.id],
+  );
 
   const isSelected = selectedRoomId === room.id;
   const isHovered = hoveredId === room.id;
   const isTransparent = transparentWalls || isFloorDimmed;
-
-  const getDoorTransform = (deviceId: string) => {
-    if (room.type === 'corridor' || !room.doors?.length || !deviceId.startsWith('DOOR')) return null;
-    const opening = room.doors.find((door) => deviceId.toLowerCase().includes(door.id.replace('door-', '')))
-      ?? room.doors[0];
-    const isHorizontal = opening.wall === 'north' || opening.wall === 'south';
-    const wallLength = isHorizontal ? room.width : room.depth;
-    const alongWall = -wallLength / 2 + opening.offset + opening.width / 2;
-    const wallPosition: [number, number, number] = isHorizontal
-      ? [alongWall, 0, opening.wall === 'north' ? -room.depth / 2 : room.depth / 2]
-      : [opening.wall === 'west' ? -room.width / 2 : room.width / 2, 0, alongWall];
-    const rotationY = opening.wall === 'west' ? Math.PI / 2 : opening.wall === 'east' ? -Math.PI / 2 : 0;
-    return {
-      position: wallPosition,
-      rotation: [0, rotationY, 0] as [number, number, number],
-      doorWidth: opening.width,
-      doorHeight: opening.height,
-    };
-  };
 
   const handlePointerOver = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
@@ -140,11 +129,9 @@ export const Room: React.FC<RoomProps> = ({
         isHovered={isHovered}
       />
 
-      <RoomInterior
-        type={room.type}
-        width={room.width}
-        depth={room.depth}
-      />
+      {layoutObjects.map((object) => (
+        <LayoutObjectMesh key={object.id} object={object} />
+      ))}
 
       {/* Walls */}
       <RoomWalls
@@ -159,17 +146,29 @@ export const Room: React.FC<RoomProps> = ({
       />
 
       {/* Devices (only when room is not dimmed) */}
-      {showDevices && !isFloorDimmed && roomDeviceIds.map((deviceId) => {
+      {showDevices && !isFloorDimmed && roomDeviceIds.map((deviceId, markerIndex) => {
         const def = definitions[deviceId];
         const deviceState = states[deviceId];
-        if (!def || !deviceState) return null;
+        // The elevator cabin is rendered once at building level so it can travel
+        // through every floor instead of being trapped inside Floor 2.
+        if (!def || !deviceState || def.type === 'elevator') return null;
         return (
          <DeviceObject
-            key={deviceId}
+            key={`${room.id}-${deviceId}`}
             definition={def}
             deviceState={deviceState}
             showMarkers={isSelected || isTransparent}
-            {...(def.type === 'door' ? getDoorTransform(deviceId) : null)}
+             {...(def.type === 'door' ? (() => {
+              const transform = getDoorTransform(room, deviceId, def.openingId);
+              return transform ? {
+                position: transform.position,
+                rotation: transform.rotation,
+                doorWidth: transform.width,
+                doorHeight: transform.height,
+              } : null;
+             })() : def.type === 'ac' ? getAcTransform(room, def.position) : null)}
+            markerIndex={markerIndex}
+            markerCount={roomDeviceIds.length}
           />
         );
       })}

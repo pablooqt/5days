@@ -6,7 +6,8 @@ import { useSelectionStore } from "@/stores/useSelectionStore";
 import { useVisibilityStore } from "@/stores/useVisibilityStore";
 import { useCameraStore } from "@/stores/useCameraStore";
 import { useDeviceStore } from "@/stores/useDeviceStore";
-import { demoBuildingConfig } from "@/config/building";
+import { useActiveBuildingConfig } from "@/stores/useBuildingStore";
+import { formatDeviceLabel } from "@/lib/deviceLabels";
 import {
   LayoutDashboard,
   Building2,
@@ -49,6 +50,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const selectDevice = useDeviceStore((s) => s.selectDevice);
   const selectedDeviceId = useDeviceStore((s) => s.selectedDeviceId);
   const definitions = useDeviceStore((s) => s.definitions);
+  const building = useActiveBuildingConfig();
 
   const allDevices = Object.values(definitions);
   const onlineCount = allDevices.filter((d) => d.status !== "offline").length;
@@ -56,7 +58,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   return (
     <aside
-      className={`${mobileOpen ? "flex" : "hidden"} md:flex flex-col shrink-0 bg-white border-r border-slate-200 transition-all duration-200 z-10 ${
+      className={`${mobileOpen ? "flex" : "hidden"} md:flex flex-col shrink-0 bg-white border-r border-slate-200 transition-all duration-200 z-30 ${
         collapsed ? "w-14" : "w-56"
       }`}
     >
@@ -126,7 +128,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   Floors Active
                 </div>
                 <div className="flex gap-1">
-                  {demoBuildingConfig.floors.map((f) => (
+                   {building.floors.map((f) => (
                     <div
                       key={f.id}
                       className="flex-1 h-1.5 bg-indigo-400 rounded-full"
@@ -134,7 +136,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   ))}
                 </div>
                 <div className="text-[10px] text-slate-400 mt-1">
-                  {demoBuildingConfig.floors.length} floors monitored
+                   {building.floors.length} floors monitored
                 </div>
               </div>
             </div>
@@ -157,7 +159,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               >
                 All Floors
               </button>
-              {demoBuildingConfig.floors.map((f) => (
+              {building.floors.map((f) => (
                 <button
                   key={f.id}
                   onClick={() => {
@@ -185,7 +187,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wide mb-2">
                 All Rooms
               </p>
-              {demoBuildingConfig.floors.flatMap((f) =>
+               {building.floors.flatMap((f) =>
                 f.rooms.map((r) => (
                   <button
                     key={r.id}
@@ -245,7 +247,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`}
                     />
                     <span className="font-mono font-semibold truncate flex-1">
-                      {def.id}
+                       {formatDeviceLabel(def.id)}
                     </span>
                     {def.status === "warning" && (
                       <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-bold">

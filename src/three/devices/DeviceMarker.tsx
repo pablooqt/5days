@@ -7,21 +7,17 @@ import { useDeviceStore } from '@/stores/useDeviceStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useVisibilityStore } from '@/stores/useVisibilityStore';
 import { useCameraStore } from '@/stores/useCameraStore';
+import { useActiveBuildingConfig } from '@/stores/useBuildingStore';
+import { getElevatorLocation } from '@/lib/elevatorLocation';
+import { formatDeviceLabel } from '@/lib/deviceLabels';
 
 interface DeviceMarkerProps {
   definition: DeviceDefinition;
   deviceState: DeviceState;
   isSelected: boolean;
+  markerIndex?: number;
+  markerCount?: number;
 }
-
-const DEVICE_TYPE_ICONS: Record<string, string> = {
-  ac:       '❄️',
-  light:    '💡',
-  door:     '🚪',
-  elevator: '🛗',
-  cctv:     '📷',
-  sensor:   '🌡️',
-};
 
 const STATUS_COLORS: Record<string, string> = {
   online:  'bg-emerald-500',
@@ -34,6 +30,8 @@ export const DeviceMarker: React.FC<DeviceMarkerProps> = ({
   definition,
   deviceState,
   isSelected,
+  markerIndex = 0,
+  markerCount = 1,
 }) => {
   const selectDevice = useDeviceStore((s) => s.selectDevice);
   const selectedDeviceId = useDeviceStore((s) => s.selectedDeviceId);
@@ -42,6 +40,7 @@ export const DeviceMarker: React.FC<DeviceMarkerProps> = ({
   const setFloorMode = useVisibilityStore((s) => s.setFloorMode);
   const issueCameraCommand = useCameraStore((s) => s.issueCommand);
   const isZoomedIn = useCameraStore((s) => s.isZoomedIn);
+  const building = useActiveBuildingConfig();
 
   const shouldHide = (isZoomedIn && !isSelected) || Boolean(selectedDeviceId && !isSelected);
 
@@ -51,16 +50,16 @@ export const DeviceMarker: React.FC<DeviceMarkerProps> = ({
       const willSelect = !isSelected;
       selectDevice(willSelect ? definition.id : null);
       if (willSelect) {
-        selectFloor(definition.floorId);
-        selectRoom(definition.roomId);
+        const elevatorLocation = deviceState.type === 'elevator' ? getElevatorLocation(building, deviceState.state) : null;
+        selectFloor(elevatorLocation?.floor.id ?? definition.floorId);
+        selectRoom(elevatorLocation ? null : definition.roomId);
         setFloorMode('isolate');
         issueCameraCommand('focusDevice', definition.id);
       }
     },
-    [definition.floorId, definition.roomId, definition.id, isSelected, selectDevice, selectFloor, selectRoom, setFloorMode, issueCameraCommand]
+    [building, definition.floorId, definition.roomId, definition.id, deviceState, isSelected, selectDevice, selectFloor, selectRoom, setFloorMode, issueCameraCommand]
   );
 
-  const icon = DEVICE_TYPE_ICONS[definition.type] ?? '📡';
   const isPoweredOff = (deviceState.type === 'ac' || deviceState.type === 'light') && !deviceState.state.power;
   const isCctvOffline = deviceState.type === 'cctv' && !deviceState.state.online;
   const statusDot = isPoweredOff || isCctvOffline ? 'bg-rose-500' : STATUS_COLORS[definition.status] ?? 'bg-slate-400';
@@ -74,19 +73,22 @@ export const DeviceMarker: React.FC<DeviceMarkerProps> = ({
   else if (deviceState.type === 'sensor') statusLabel = `${deviceState.state.value.toFixed(1)}${deviceState.state.unit}`;
   else if (deviceState.type === 'elevator') statusLabel = `Floor ${deviceState.state.currentFloor}`;
 
-  const yOffset =
+  const baseYOffset =
     definition.type === 'ac' ? 0.75
     : definition.type === 'door' ? 1.45
     : definition.type === 'elevator' ? 1.65
     : definition.type === 'light' ? 0.65
     : definition.type === 'cctv' ? 0.65
     : 0.60;
+  const row = markerIndex % 3;
+  const column = Math.floor(markerIndex / 3);
+  const markerXOffset = markerCount > 1 ? (row - 1) * 0.24 : 0;
+  const yOffset = baseYOffset + row * 0.22 + column * 0.08;
 
   return (
     <Html
-      position={[0, yOffset, 0]}
+      position={[markerXOffset, yOffset, 0]}
       center
-      distanceFactor={16}
       zIndexRange={[20, 10]}
       className={`transition-opacity duration-300 select-none ${
         shouldHide ? 'opacity-0 pointer-events-none' : 'pointer-events-auto'
@@ -94,7 +96,7 @@ export const DeviceMarker: React.FC<DeviceMarkerProps> = ({
     >
       <div
         onClick={handleClick}
-        className={`relative group flex items-center gap-1.5 px-2 py-1 rounded-xl border shadow-md transition-all duration-150 cursor-pointer ${
+        className={`relative group flex max-w-[10rem] items-center gap-1.5 rounded-xl border px-2 py-1 shadow-md transition-all duration-150 cursor-pointer ${
           isSelected
             ? 'bg-slate-900 border-slate-700 text-white shadow-indigo-500/30 ring-2 ring-indigo-400'
             : isPoweredOff || isCctvOffline
@@ -102,8 +104,7 @@ export const DeviceMarker: React.FC<DeviceMarkerProps> = ({
             : 'bg-white/95 backdrop-blur-sm border-slate-200/80 text-slate-700 hover:bg-white hover:border-slate-300 hover:scale-105'
         }`}
       >
-        <span className="w-4 h-4 rounded-md bg-slate-100/90 flex items-center justify-center text-[10px] leading-none shrink-0">{icon}</span>
-        <span className="text-[10px] font-bold tracking-tight leading-none whitespace-nowrap">{definition.id.split('_')[0]}</span>
+        <span className="truncate text-[10px] font-bold tracking-tight leading-none">{formatDeviceLabel(definition.id)}</span>
         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDot}`} />
         <span className={`text-[9px] font-mono leading-none whitespace-nowrap ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
           {statusLabel}

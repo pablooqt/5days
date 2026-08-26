@@ -7,6 +7,8 @@ import { IsometricCamera } from '../camera/IsometricCamera';
 import { Building } from '../building/Building';
 import { BuildingConfig } from '@/types/building';
 import { useSelectionStore } from '@/stores/useSelectionStore';
+import { useActiveBuildingConfig } from '@/stores/useBuildingStore';
+import { useBuildingStore } from '@/stores/useBuildingStore';
 
 interface SceneCanvasProps {
   config?: BuildingConfig;
@@ -36,6 +38,8 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({
   className = 'w-full h-full',
 }) => {
   const clearSelection = useSelectionStore((s) => s.clearSelection);
+  const activeConfig = useActiveBuildingConfig();
+  const editorMode = useBuildingStore((state) => state.editorMode);
 
   const isClient = useSyncExternalStore(
     emptySubscribe,
@@ -50,9 +54,10 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({
   );
 
   const handlePointerMissed = useCallback(() => {
+    if (editorMode) return;
     clearSelection();
     document.body.style.cursor = 'auto';
-  }, [clearSelection]);
+  }, [clearSelection, editorMode]);
 
   if (!isClient) {
     return (
@@ -102,13 +107,13 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({
 
         <LightingRig shadows />
 
-         <Building config={config} />
+         <Building config={config ?? activeConfig} />
 
-        <IsometricCamera
+         <IsometricCamera
           autoRotate={autoRotate}
-          enableRotate={interactive}
-          enableZoom={interactive}
-          enablePan={interactive}
+           enableRotate={interactive}
+           enableZoom={interactive}
+           enablePan={interactive}
         />
       </Canvas>
     </div>
